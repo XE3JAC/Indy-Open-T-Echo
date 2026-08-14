@@ -1,1 +1,176 @@
+name: Sync T-Echo Firmware
 
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-firmware:
+    # En eventos release sólo actúa sobre tags echo-vX.Y.Z.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'echo-v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/releases?per_page=100" > /tmp/releases.json
+            TAG=$(python3 - <<'PY'
+          import json, re
+          releases = json.load(open("/tmp/releases.json", encoding="utf-8"))
+          candidates = []
+          for rel in releases:
+              if rel.get("draft"):
+                  continue
+              tag = str(rel.get("tag_name") or "")
+              m = re.fullmatch(r"echo-v(\d+)\.(\d+)\.(\d+)", tag)
+              if m:
+                  candidates.append((tuple(map(int, m.groups())), tag))
+          print(max(candidates)[1] if candidates else "")
+          PY
+            )
+          fi
+
+          if [[ -z "$TAG" || "$TAG" == "null" || ! "$TAG" =~ ^echo-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "No se encontró un Release válido con tag echo-vX.Y.Z."
+            exit 1
+          fi
+
+          VERSION="${TAG#echo-}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release seleccionado: $TAG ($VERSION)"
+
+      - name: Download and validate firmware assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TMP_DIR="$(mktemp -d)"
+          DEST="webflasher/firmware"
+          mkdir -p "$DEST"
+
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$TMP_DIR" \
+            --pattern "indy-open-echo-*.bin"
+
+          expected=(
+            "indy-open-echo-433-${VERSION}.bin"
+            "indy-open-echo-868-${VERSION}.bin"
+            "indy-open-echo-915-${VERSION}.bin"
+            "indy-open-echo-bme-433-${VERSION}.bin"
+            "indy-open-echo-bme-868-${VERSION}.bin"
+            "indy-open-echo-bme-915-${VERSION}.bin"
+            "indy-open-echo-plus-433-${VERSION}.bin"
+            "indy-open-echo-plus-868-${VERSION}.bin"
+            "indy-open-echo-plus-915-${VERSION}.bin"
+          )
+
+          for file in "${expected[@]}"; do
+            if [[ ! -s "$TMP_DIR/$file" ]]; then
+              echo "Falta el asset requerido o está vacío: $file"
+              exit 1
+            fi
+          done
+
+          # Conserva únicamente el firmware correspondiente al último Release.
+          rm -f "$DEST"/*.bin "$DEST/catalog.json"
+          for file in "${expected[@]}"; do
+            cp "$TMP_DIR/$file" "$DEST/$file"
+          done
+
+          echo "Los 9 firmwares fueron descargados y validados."
+
+      - name: Generate local firmware catalog
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+
+          tag = os.environ["TAG"]
+          version = os.environ["VERSION"]
+          dest = pathlib.Path("webflasher/firmware")
+
+          specs = [
+              ("echo-433", "T-Echo", "433"),
+              ("echo-868", "T-Echo", "868"),
+              ("echo-915", "T-Echo", "915"),
+              ("echo-bme-433", "T-Echo BME", "433"),
+              ("echo-bme-868", "T-Echo BME", "868"),
+              ("echo-bme-915", "T-Echo BME", "915"),
+              ("echo-plus-433", "T-Echo Plus", "433"),
+              ("echo-plus-868", "T-Echo Plus", "868"),
+              ("echo-plus-915", "T-Echo Plus", "915"),
+          ]
+
+          profiles = {}
+          for key, model, frequency in specs:
+              filename = f"indy-open-{key}-{version}.bin"
+              path = dest / filename
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Firmware no encontrado: {filename}")
+              profiles[key] = {
+                  "model": model,
+                  "frequency": frequency,
+                  "version": version,
+                  "file": filename,
+                  "baseAddress": "0x26000",
+                  "familyId": "0xADA52840"
+              }
+
+          data = {
+              "releaseTag": tag,
+              "releaseTitle": f"indy-open-echo-{version}",
+              "version": version,
+              "profiles": profiles
+          }
+
+          (dest / "catalog.json").write_text(
+              json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8"
+          )
+          PY
+
+      - name: Commit synchronized firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- webflasher/firmware; then
+            echo "El firmware local ya está sincronizado; no hay cambios que guardar."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add webflasher/firmware
+          git commit -m "Sync T-Echo firmware ${{ steps.release.outputs.version }}"
+          git push
