@@ -97,17 +97,17 @@ Listo.</pre>
 
   <h3>Al terminar</h3>
   <ol>
-    <li>El T-Echo puede desmontar la unidad USB y reiniciarse automáticamente.</li>
+    <li>El T-Echo puede desmontar la unidad USB y reiniciarse automáticamente. Si esto ocurre después de enviar el 100 % del UF2, el Web Flasher lo tratará como finalización correcta.</li>
     <li>Si Chrome bloquea la escritura directa, pulsa <strong>Descargar UF2</strong> y copia ese archivo manualmente a la unidad del T-Echo.</li>
   </ol>
 
   <div class="warning"><strong>Importante:</strong> no instales un firmware de otra variante o banda. Si cambias el modelo o la banda, vuelve a preparar el firmware antes de instalar.</div>
 </aside>
 </div>
-<footer>Indy Open T-Echo · Indy Open Project by XE3JAC · Web Flasher v0.1.6</footer>
+<footer>Indy Open T-Echo · Indy Open Project by XE3JAC · Web Flasher v0.1.7</footer>
 </main>
 <script>
-const WEBFLASHER_VERSION = "0.1.6";
+const WEBFLASHER_VERSION = "0.1.7";
 // Repositorio oficial donde se publican los Releases de Indy Open T-Echo.
 const GITHUB_REPOSITORY = "XE3JAC/Indy-Open-T-Echo";
 const RELEASE_TAG_PREFIX = "echo-v";
@@ -375,13 +375,40 @@ async function flashFirmware(){
     const safeBrowsing=/safe browsing/i.test(msg);
     const missing=/requested file or directory could not be found|not found|no longer exists|disconnected|device.*gone/i.test(msg);
 
+    if(safeBrowsing && stage === "cerrar" && written === data.length){
+      setProgress(100);
+      $("driveState").textContent="firmware enviado / T-Echo reiniciando";
+      setResult(
+        `Firmware enviado completamente: ${written}/${data.length} bytes. ` +
+        "Chrome no pudo completar su comprobación al cerrar el archivo, pero todos los datos ya fueron enviados. " +
+        "El T-Echo puede desmontar la unidad y reiniciarse automáticamente.",
+        "ok"
+      );
+      log("Todos los bytes fueron enviados correctamente.");
+      log("Chrome reportó Safe Browsing durante el cierre; se considera finalización correcta porque la escritura llegó al 100 %.");
+      return;
+    }
+
     if(safeBrowsing){
       setProgress(Math.max(35,35+60*(written/data.length)));
       setResult(
-        "Chrome bloqueó o no pudo completar su comprobación de seguridad al escribir en la unidad. El UF2 ya está preparado: usa “Descargar UF2” como respaldo.",
+        `Chrome bloqueó la escritura antes de completarse (${written}/${data.length} bytes). ` +
+        "Usa “Descargar UF2” como respaldo.",
         "error"
       );
-      log("El navegador bloqueó la escritura directa. El UF2 preparado se conserva para descarga manual.");
+      log(`Safe Browsing ocurrió antes de completar la escritura (${written}/${data.length} bytes).`);
+      return;
+    }
+
+    if(missing && written === data.length){
+      setProgress(100);
+      $("driveState").textContent="firmware enviado / T-Echo reiniciando";
+      setResult(
+        `Firmware enviado completamente: ${written}/${data.length} bytes. ` +
+        "La unidad desapareció al finalizar, probablemente porque el T-Echo reinició automáticamente.",
+        "ok"
+      );
+      log("La unidad desapareció después de recibir el 100 % del UF2; se considera finalización correcta.");
       return;
     }
 
