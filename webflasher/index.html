@@ -55,7 +55,7 @@ button{appearance:none;border:0;background:var(--accent);color:#fff;padding:12px
   <div id="supportStatus" class="status">Comprobando compatibilidad…</div>
 
   <div class="actions">
-    <button id="selectBootBtn">1. Seleccionar TECHOBOOT</button>
+    <button id="selectBootBtn">1. Seleccionar unidad USB</button>
     <button id="flashBtn" disabled>2. Instalar firmware</button>
     <button id="downloadBtn" class="secondary">Descargar UF2</button>
   </div>
@@ -90,8 +90,8 @@ Listo.</pre>
   <ol>
     <li>Conecta el T-Echo por USB.</li>
     <li>Presiona dos veces rápidamente el botón <strong>RESET</strong>.</li>
-    <li>En la computadora debe aparecer una unidad llamada <strong>TECHOBOOT</strong>.</li>
-    <li>Pulsa <strong>Seleccionar TECHOBOOT</strong> y elige esa unidad.</li>
+    <li>En la computadora aparecerá una nueva unidad USB correspondiente al modo de instalación del T-Echo.</li>
+    <li>Pulsa <strong>Seleccionar unidad USB</strong> y elige la unidad que apareció al entrar al modo de instalación.</li>
   </ol>
 
   <h3>Instalación</h3>
@@ -101,17 +101,15 @@ Listo.</pre>
     <li>El T-Echo puede desconectarse automáticamente al terminar. Eso es normal.</li>
   </ol>
 
-  <div class="warning"><strong>Importante:</strong> no instales un firmware de otra variante o banda. Si el navegador no permite escribir directamente en TECHOBOOT, usa <strong>Descargar UF2</strong> y copia el archivo manualmente a esa unidad.</div>
+  <div class="warning"><strong>Importante:</strong> no instales un firmware de otra variante o banda. Si el navegador no permite escribir directamente en la unidad USB, usa <strong>Descargar UF2</strong> y copia el archivo manualmente a la unidad que apareció al entrar al modo de instalación.</div>
 </aside>
 </div>
-<footer>Indy Open T-Echo · Indy Open Project by XE3JAC · Web Flasher v0.1.1</footer>
+<footer>Indy Open T-Echo · Indy Open Project by XE3JAC · Web Flasher v0.1.2</footer>
 </main>
 <script>
-const WEBFLASHER_VERSION = "0.1.1";
-// Si la página está publicada en GitHub Pages (usuario.github.io/repositorio/),
-// el repositorio se detecta automáticamente. Para un dominio personalizado,
-// escribe aquí "OWNER/REPO". Ejemplo: "XE3JAC/IndyOpen-T-Echo".
-const GITHUB_REPOSITORY = "";
+const WEBFLASHER_VERSION = "0.1.2";
+// Repositorio oficial donde se publican los Releases de Indy Open T-Echo.
+const GITHUB_REPOSITORY = "XE3JAC/Indy-Open-T-Echo";
 const RELEASE_TAG_PREFIX = "echo-v";
 const GITHUB_API_BASE = "https://api.github.com/repos";
 const UF2_MAGIC_START0 = 0x0A324655;
@@ -265,7 +263,7 @@ async function loadCatalog(){
   if(missing.length){
     setResult(`Release ${rel.tag_name} detectado. Se encontraron ${found}/9 firmwares; faltan ${missing.length}.`, "");
   }else{
-    setResult(`Release ${rel.tag_name} detectado. Los 9 firmwares están disponibles. Entra al bootloader y selecciona TECHOBOOT.`, "ok");
+    setResult(`Release ${rel.tag_name} detectado. Los 9 firmwares están disponibles. Entra al modo de instalación y selecciona la unidad USB del T-Echo.`, "ok");
   }
   log(`Release seleccionado: ${rel.name || rel.tag_name} (${rel.tag_name}).`);
 }
@@ -297,24 +295,33 @@ async function buildUf2(){
 }
 
 async function selectBootDrive(){
-  if(!window.showDirectoryPicker) throw new Error("Este navegador no permite seleccionar la unidad TECHOBOOT. Usa Chrome o Edge actualizado o descarga el UF2 manualmente.");
+  if(!window.showDirectoryPicker) throw new Error("Este navegador no permite seleccionar una unidad USB. Usa Chrome o Edge actualizado o descarga el UF2 manualmente.");
   const handle=await window.showDirectoryPicker({mode:'readwrite'});
-  if(String(handle.name||'').toUpperCase() !== 'TECHOBOOT') throw new Error(`La carpeta seleccionada es “${handle.name||'desconocida'}”. Selecciona la unidad TECHOBOOT del T-Echo.`);
-  const perm=await handle.requestPermission({mode:'readwrite'}); if(perm!=='granted') throw new Error("No se concedió permiso para escribir en TECHOBOOT.");
-  bootHandle=handle; $("driveState").textContent="TECHOBOOT seleccionada"; renderSelection(); setResult("TECHOBOOT seleccionada. Ya puedes instalar el firmware.","ok"); log("Unidad TECHOBOOT seleccionada correctamente.");
+  const perm=await handle.requestPermission({mode:'readwrite'});
+  if(perm!=='granted') throw new Error("No se concedió permiso para escribir en la unidad seleccionada.");
+
+  // Chrome puede reportar la raíz de una unidad extraíble simplemente como \"\\\".
+  // No exigimos un nombre concreto; el usuario elige la unidad que apareció
+  // al poner el T-Echo en modo de instalación.
+  bootHandle=handle;
+  const shownName=String(handle.name||'').trim();
+  $("driveState").textContent=shownName && shownName!=="\\" ? `unidad seleccionada (${shownName})` : "unidad USB seleccionada";
+  renderSelection();
+  setResult("Unidad USB seleccionada. Ya puedes instalar el firmware.","ok");
+  log(`Unidad USB seleccionada${shownName ? `: ${shownName}` : ""}.`);
 }
 
 async function flashFirmware(){
-  if(!bootHandle) throw new Error("Primero selecciona la unidad TECHOBOOT.");
+  if(!bootHandle) throw new Error("Primero selecciona la unidad USB del T-Echo en modo de instalación.");
   const {fw,data}=await buildUf2(); const filename=`indy-open-${currentKey()}-${fw.version}.uf2`;
   setProgress(10); setResult("Preparando instalación…");
   try{
     const fileHandle=await bootHandle.getFileHandle(filename,{create:true}); const writable=await fileHandle.createWritable();
     const chunk=64*1024; for(let off=0;off<data.length;off+=chunk){ await writable.write(data.subarray(off,Math.min(data.length,off+chunk))); setProgress(10+Math.min(85,85*(off+chunk)/data.length)); }
-    await writable.close(); setProgress(100); $("driveState").textContent="instalación completada"; setResult(`Instalación completada: ${fw.model} ${fw.frequency} MHz ${fw.version}. Ya puedes desconectar el T-Echo.`,"ok"); log("Instalación completada. El T-Echo puede reiniciarse o desmontar TECHOBOOT automáticamente.");
+    await writable.close(); setProgress(100); $("driveState").textContent="instalación completada"; setResult(`Instalación completada: ${fw.model} ${fw.frequency} MHz ${fw.version}. Ya puedes desconectar el T-Echo.`,"ok"); log("Instalación completada. El T-Echo puede reiniciarse o desmontar la unidad USB automáticamente.");
   }catch(e){
     const msg=String(e?.message||e||'');
-    if(/disconnected|not found|gone|device|aborted/i.test(msg)){ setProgress(100); setResult("La copia terminó y TECHOBOOT se desconectó. Si el T-Echo reinició, la instalación probablemente finalizó correctamente.","ok"); log(`TECHOBOOT se desconectó durante el cierre: ${msg}`); return; }
+    if(/disconnected|not found|gone|device|aborted/i.test(msg)){ setProgress(100); setResult("La copia terminó y la unidad USB se desconectó. Si el T-Echo reinició, la instalación probablemente finalizó correctamente.","ok"); log(`La unidad USB se desconectó durante el cierre: ${msg}`); return; }
     throw e;
   }
 }
@@ -322,7 +329,7 @@ async function flashFirmware(){
 async function downloadUf2(){
   const {fw,data}=await buildUf2(); const name=`indy-open-${currentKey()}-${fw.version}.uf2`;
   const blob=new Blob([data],{type:'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  setResult(`UF2 generado. Copia “${name}” a la unidad TECHOBOOT.`,"ok"); log(`UF2 descargado: ${name}.`);
+  setResult(`UF2 generado. Copia “${name}” a la unidad USB que apareció al entrar al modo de instalación.`,"ok"); log(`UF2 descargado: ${name}.`);
 }
 
 document.querySelectorAll('input[name="model"]').forEach(x=>x.addEventListener('change',()=>{model=x.value;renderSelection();log(`Modelo seleccionado: ${model}.`);}));
@@ -331,7 +338,7 @@ $("selectBootBtn").addEventListener('click',async()=>{try{await selectBootDrive(
 $("flashBtn").addEventListener('click',async()=>{const fw=currentFirmware(); if(!fw)return; if(!confirm(`Se instalará:\n\n${fw.model}\n${fw.frequency} MHz\n${fw.version}\n\n¿Deseas continuar?`))return; try{$("flashBtn").disabled=true;await flashFirmware();}catch(e){setProgress(0);setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);}finally{renderSelection();}});
 $("downloadBtn").addEventListener('click',async()=>{try{await downloadUf2();}catch(e){setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);}});
 
-if(window.isSecureContext){$("supportStatus").className="status ok";$("supportStatus").innerHTML=window.showDirectoryPicker?"<strong>Navegador compatible.</strong> Puede seleccionar TECHOBOOT y escribir el UF2.":"<strong>Modo compatible parcial.</strong> Puedes generar el UF2; para instalación directa usa Chrome o Edge con acceso al sistema de archivos.";}else{$("supportStatus").className="status error";$("supportStatus").innerHTML="<strong>Contexto no seguro.</strong> Publica la página mediante HTTPS para usar todas las funciones.";}
+if(window.isSecureContext){$("supportStatus").className="status ok";$("supportStatus").innerHTML=window.showDirectoryPicker?"<strong>Navegador compatible.</strong> Puede seleccionar la unidad USB y escribir el UF2.":"<strong>Modo compatible parcial.</strong> Puedes generar el UF2; para instalación directa usa Chrome o Edge con acceso al sistema de archivos.";}else{$("supportStatus").className="status error";$("supportStatus").innerHTML="<strong>Contexto no seguro.</strong> Publica la página mediante HTTPS para usar todas las funciones.";}
 loadCatalog().catch(e=>{setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);renderSelection();});
 </script>
 </body>
