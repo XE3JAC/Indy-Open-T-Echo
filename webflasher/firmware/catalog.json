@@ -1,1 +1,79 @@
-
+{
+  "releaseTag": "echo-v0.2.0",
+  "releaseTitle": "indy-open-echo-v0.2.0",
+  "version": "v0.2.0",
+  "profiles": {
+    "echo-433": {
+      "model": "T-Echo",
+      "frequency": "433",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-433-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-868": {
+      "model": "T-Echo",
+      "frequency": "868",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-868-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-915": {
+      "model": "T-Echo",
+      "frequency": "915",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-915-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-bme-433": {
+      "model": "T-Echo BME",
+      "frequency": "433",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-bme-433-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-bme-868": {
+      "model": "T-Echo BME",
+      "frequency": "868",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-bme-868-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-bme-915": {
+      "model": "T-Echo BME",
+      "frequency": "915",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-bme-915-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-plus-433": {
+      "model": "T-Echo Plus",
+      "frequency": "433",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-plus-433-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-plus-868": {
+      "model": "T-Echo Plus",
+      "frequency": "868",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-plus-868-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    },
+    "echo-plus-915": {
+      "model": "T-Echo Plus",
+      "frequency": "915",
+      "version": "v0.2.0",
+      "file": "indy-open-echo-plus-915-v0.2.0.bin",
+      "baseAddress": "0x26000",
+      "familyId": "0xADA52840"
+    }
+  }
+}
