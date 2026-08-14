@@ -1,1 +1,338 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="description" content="Web Flasher de Indy Open para LILYGO T-Echo nRF52840 mediante UF2.">
+<title>Indy Open T-Echo — Web Flasher</title>
+<style>
+:root{--bg:#f4f8f9;--panel:#fff;--text:#17363b;--muted:#657a7f;--accent:#0e7c86;--accent-dark:#095a61;--line:#d9e5e7;--warning:#fff4d8;--warning-line:#d7a52b;--ok:#e8f5ec;--ok-line:#4d9b62;--error:#fdeaea;--error-line:#c85c5c}
+*{box-sizing:border-box} body{margin:0;min-height:100vh;background:linear-gradient(180deg,#e9f4f5 0,var(--bg) 280px);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
+.wrap{width:min(1050px,calc(100% - 32px));margin:0 auto;padding:36px 0 64px}.hero{background:linear-gradient(135deg,var(--accent-dark),#1598a3);color:#fff;border-radius:22px;padding:34px}.eyebrow{font-size:.9rem;opacity:.84;margin-bottom:5px}h1{margin:0;font-size:clamp(2rem,7vw,4.2rem);line-height:1;letter-spacing:-.04em}.hero p{max-width:780px;font-size:1.05rem;margin-bottom:0}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:20px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}h2{margin-top:0;color:var(--accent-dark)}h3{color:var(--accent-dark);margin-bottom:8px}.status{margin:14px 0;padding:12px 14px;border-radius:10px;background:#f8fbfb;border-left:4px solid var(--line)}.status.ok{background:var(--ok);border-left-color:var(--ok-line)}.status.error{background:var(--error);border-left-color:var(--error-line)}.warning{background:var(--warning);border-left:4px solid var(--warning-line);padding:14px 16px;border-radius:10px;margin-top:18px}.small{font-size:.88rem;color:var(--muted)}
+button{appearance:none;border:0;background:var(--accent);color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer}button:hover{background:var(--accent-dark)}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#49686d}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.progress{width:100%;height:16px;border-radius:999px;background:#e8eff0;overflow:hidden;margin:12px 0}.progress>div{height:100%;width:0;background:var(--accent);transition:width .12s}pre{background:#102a2e;color:#d8f0f2;padding:14px;border-radius:12px;max-height:320px;overflow:auto;font-size:.82rem;white-space:pre-wrap}ol{padding-left:1.3rem}
+.selector{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}.option{display:block;border:2px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;background:#fff}.option.selected{border-color:var(--accent);background:#f3fbfb}.option input{margin-right:8px}.option strong{color:var(--accent-dark)}.option .small{display:block;margin:4px 0 0 24px}.freqs{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.freq{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);padding:5px 9px;border-radius:999px;background:#fff}.freq input{margin:0}code{overflow-wrap:anywhere}footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}@media(max-width:760px){.grid{grid-template-columns:1fr}.hero{padding:26px 22px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="hero">
+  <div class="eyebrow">Indy Open Project by XE3JAC</div>
+  <h1>INDY OPEN T-ECHO</h1>
+  <p>Selecciona tu versión de LILYGO T-Echo y la banda correcta. El Web Flasher prepara el firmware UF2 para el bootloader nRF52840.</p>
+</section>
+<div class="grid">
+<section class="card">
+  <h2>Instalar firmware</h2>
+  <div class="selector">
+    <label class="option selected" id="optEcho">
+      <input type="radio" name="model" value="echo" checked>
+      <strong>LILYGO T-Echo</strong>
+      <span class="small">Versión estándar.</span>
+    </label>
+    <label class="option" id="optBme">
+      <input type="radio" name="model" value="echo-bme">
+      <strong>LILYGO T-Echo BME</strong>
+      <span class="small">Versión con sensor BME.</span>
+    </label>
+    <label class="option" id="optPlus">
+      <input type="radio" name="model" value="echo-plus">
+      <strong>LILYGO T-Echo Plus</strong>
+      <span class="small">Versión Plus.</span>
+    </label>
+  </div>
 
+  <h3>Banda</h3>
+  <div class="freqs">
+    <label class="freq"><input type="radio" name="freq" value="433" checked>433 MHz</label>
+    <label class="freq"><input type="radio" name="freq" value="868">868 MHz</label>
+    <label class="freq"><input type="radio" name="freq" value="915">915 MHz</label>
+  </div>
+
+  <div id="supportStatus" class="status">Comprobando compatibilidad…</div>
+
+  <div class="actions">
+    <button id="selectBootBtn">1. Seleccionar TECHOBOOT</button>
+    <button id="flashBtn" disabled>2. Instalar firmware</button>
+    <button id="downloadBtn" class="secondary">Descargar UF2</button>
+  </div>
+
+  <div class="status">
+    <strong>Modelo:</strong> <span id="selectedModel">T-Echo</span><br>
+    <strong>Banda:</strong> <span id="selectedFreq">433 MHz</span><br>
+    <strong>Versión:</strong> <span id="selectedVersion">consultando…</span><br>
+    <strong>Unidad:</strong> <span id="driveState">sin seleccionar</span>
+  </div>
+
+  <div class="small" id="progressText"><strong>Progreso:</strong> 0 %</div>
+  <div class="progress"><div id="progressBar"></div></div>
+  <div id="resultStatus" class="status">Consultando firmwares disponibles…</div>
+
+  <h3>Consola</h3>
+  <pre id="log">Indy Open T-Echo — Web Flasher
+Listo.</pre>
+</section>
+
+<aside class="card">
+  <h2>Ayuda</h2>
+  <h3>Antes de comenzar</h3>
+  <ol>
+    <li>Usa Chrome o Edge y un cable USB de datos.</li>
+    <li>Selecciona exactamente tu modelo: T-Echo, T-Echo BME o T-Echo Plus.</li>
+    <li>Selecciona la banda correcta: 433, 868 o 915 MHz.</li>
+    <li>No desconectes el equipo durante la copia del firmware.</li>
+  </ol>
+
+  <h3>Entrar al bootloader</h3>
+  <ol>
+    <li>Conecta el T-Echo por USB.</li>
+    <li>Presiona dos veces rápidamente el botón <strong>RESET</strong>.</li>
+    <li>En la computadora debe aparecer una unidad llamada <strong>TECHOBOOT</strong>.</li>
+    <li>Pulsa <strong>Seleccionar TECHOBOOT</strong> y elige esa unidad.</li>
+  </ol>
+
+  <h3>Instalación</h3>
+  <ol>
+    <li>Verifica modelo, banda y versión.</li>
+    <li>Pulsa <strong>Instalar firmware</strong>.</li>
+    <li>El T-Echo puede desconectarse automáticamente al terminar. Eso es normal.</li>
+  </ol>
+
+  <div class="warning"><strong>Importante:</strong> no instales un firmware de otra variante o banda. Si el navegador no permite escribir directamente en TECHOBOOT, usa <strong>Descargar UF2</strong> y copia el archivo manualmente a esa unidad.</div>
+</aside>
+</div>
+<footer>Indy Open T-Echo · Indy Open Project by XE3JAC · Web Flasher v0.1.1</footer>
+</main>
+<script>
+const WEBFLASHER_VERSION = "0.1.1";
+// Si la página está publicada en GitHub Pages (usuario.github.io/repositorio/),
+// el repositorio se detecta automáticamente. Para un dominio personalizado,
+// escribe aquí "OWNER/REPO". Ejemplo: "XE3JAC/IndyOpen-T-Echo".
+const GITHUB_REPOSITORY = "";
+const RELEASE_TAG_PREFIX = "echo-v";
+const GITHUB_API_BASE = "https://api.github.com/repos";
+const UF2_MAGIC_START0 = 0x0A324655;
+const UF2_MAGIC_START1 = 0x9E5D5157;
+const UF2_MAGIC_END = 0x0AB16F30;
+const UF2_FLAG_FAMILY_ID = 0x00002000;
+const DEFAULT_FAMILY_ID = 0xADA52840;
+const DEFAULT_BASE_ADDRESS = 0x26000;
+const PAYLOAD_SIZE = 256;
+
+let catalog = {};
+let model = "echo";
+let freq = "433";
+let bootHandle = null;
+const $ = id => document.getElementById(id);
+
+function log(msg){ const el=$("log"); el.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`; el.scrollTop=el.scrollHeight; }
+function setResult(text, cls=""){ const el=$("resultStatus"); el.className="status"+(cls?" "+cls:""); el.textContent=text; }
+function setProgress(p){ const v=Math.max(0,Math.min(100,p)); $("progressBar").style.width=`${v}%`; $("progressText").innerHTML=`<strong>Progreso:</strong> ${v.toFixed(0)} %`; }
+function currentKey(){ return `${model}-${freq}`; }
+function currentFirmware(){ return catalog[currentKey()] || null; }
+function parseHex(v, fallback){ if(typeof v === "number") return v; if(typeof v === "string" && /^0x[0-9a-f]+$/i.test(v)) return parseInt(v,16); return fallback; }
+
+function renderSelection(){
+  document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));
+  ({echo:'optEcho','echo-bme':'optBme','echo-plus':'optPlus'})[model] && $(({echo:'optEcho','echo-bme':'optBme','echo-plus':'optPlus'})[model]).classList.add('selected');
+  const fw=currentFirmware();
+  $("selectedModel").textContent = fw?.model || ({echo:'T-Echo','echo-bme':'T-Echo BME','echo-plus':'T-Echo Plus'})[model];
+  $("selectedFreq").textContent = `${freq} MHz`;
+  $("selectedVersion").textContent = fw?.version || "no disponible";
+  $("flashBtn").textContent = fw?.version ? `2. Instalar ${fw.version}` : "2. Instalar firmware";
+  $("flashBtn").disabled = !(bootHandle && fw);
+  $("downloadBtn").disabled = !fw;
+}
+
+function detectGitHubRepository(){
+  if(GITHUB_REPOSITORY.trim()) return GITHUB_REPOSITORY.trim();
+
+  const host = String(location.hostname || "").toLowerCase();
+  if(host.endsWith(".github.io")){
+    const owner = host.split(".")[0];
+    const repo = location.pathname.split("/").filter(Boolean)[0];
+    if(owner && repo) return `${owner}/${repo}`;
+  }
+
+  return "";
+}
+
+function parseEchoVersion(tag){
+  const m = String(tag || "").match(/^echo-v(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/i);
+  if(!m) return null;
+  return {major:Number(m[1]), minor:Number(m[2]), patch:Number(m[3]), text:`v${m[1]}.${m[2]}.${m[3]}`};
+}
+
+function compareVersionsDesc(a,b){
+  for(const k of ["major","minor","patch"]){
+    if(a.version[k] !== b.version[k]) return b.version[k] - a.version[k];
+  }
+  return 0;
+}
+
+function expectedAssetName(key, versionText){
+  return `indy-open-${key}-${versionText}.bin`;
+}
+
+async function loadCatalog(){
+  setResult("Buscando la versión más reciente de Indy Open T-Echo en GitHub Releases…");
+  log("Consultando GitHub Releases…");
+
+  const repository = detectGitHubRepository();
+  if(!repository){
+    throw new Error(
+      "No fue posible identificar el repositorio de GitHub. " +
+      "Publica este Web Flasher con GitHub Pages dentro del mismo repositorio de los Releases " +
+      "o configura GITHUB_REPOSITORY en el HTML."
+    );
+  }
+
+  log(`Repositorio detectado: ${repository}.`);
+  const apiUrl = `${GITHUB_API_BASE}/${repository}/releases?per_page=50&nocache=${Date.now()}`;
+  const r = await fetch(apiUrl, {
+    cache:"no-store",
+    headers:{"Accept":"application/vnd.github+json"}
+  });
+
+  if(!r.ok){
+    if(r.status === 403) throw new Error("GitHub limitó temporalmente las consultas. Intenta recargar la página en unos minutos.");
+    if(r.status === 404) throw new Error(`No fue posible consultar los Releases de ${repository}. Verifica que el repositorio sea público y el nombre sea correcto.`);
+    throw new Error(`No fue posible consultar GitHub Releases (HTTP ${r.status}).`);
+  }
+
+  const releases = await r.json();
+  const candidates = releases
+    .filter(rel => !rel.draft && parseEchoVersion(rel.tag_name))
+    .map(rel => ({release:rel, version:parseEchoVersion(rel.tag_name)}))
+    .sort(compareVersionsDesc);
+
+  if(!candidates.length){
+    throw new Error(`No se encontró ningún Release con tag ${RELEASE_TAG_PREFIX}X.Y.Z.`);
+  }
+
+  const latest = candidates[0];
+  const rel = latest.release;
+  const versionText = latest.version.text;
+  const assets = new Map((rel.assets || []).map(asset => [asset.name, asset]));
+
+  const profiles = [
+    ["echo-433", "T-Echo", "433"],
+    ["echo-868", "T-Echo", "868"],
+    ["echo-915", "T-Echo", "915"],
+    ["echo-bme-433", "T-Echo BME", "433"],
+    ["echo-bme-868", "T-Echo BME", "868"],
+    ["echo-bme-915", "T-Echo BME", "915"],
+    ["echo-plus-433", "T-Echo Plus", "433"],
+    ["echo-plus-868", "T-Echo Plus", "868"],
+    ["echo-plus-915", "T-Echo Plus", "915"]
+  ];
+
+  catalog = {};
+  let found = 0;
+  const missing = [];
+
+  for(const [key, modelName, frequency] of profiles){
+    const assetName = expectedAssetName(key, versionText);
+    const asset = assets.get(assetName);
+    if(asset){
+      catalog[key] = {
+        model:modelName,
+        frequency,
+        version:versionText,
+        bin:asset.browser_download_url,
+        assetName,
+        baseAddress:"0x26000",
+        familyId:"0xADA52840",
+        releaseTag:rel.tag_name,
+        releaseTitle:rel.name || rel.tag_name
+      };
+      found++;
+      log(`${modelName} · ${frequency} MHz: ${assetName} encontrado.`);
+    }else{
+      missing.push(assetName);
+      log(`AVISO: no se encontró ${assetName}.`);
+    }
+  }
+
+  if(found === 0){
+    throw new Error(`El Release ${rel.tag_name} existe, pero no contiene ninguno de los .bin esperados.`);
+  }
+
+  renderSelection();
+  if(missing.length){
+    setResult(`Release ${rel.tag_name} detectado. Se encontraron ${found}/9 firmwares; faltan ${missing.length}.`, "");
+  }else{
+    setResult(`Release ${rel.tag_name} detectado. Los 9 firmwares están disponibles. Entra al bootloader y selecciona TECHOBOOT.`, "ok");
+  }
+  log(`Release seleccionado: ${rel.name || rel.tag_name} (${rel.tag_name}).`);
+}
+
+async function getBinary(fw){
+  const url=new URL(fw.bin, location.href); url.searchParams.set('v',fw.version||Date.now());
+  const r=await fetch(url.href,{cache:'no-store'}); if(!r.ok) throw new Error(`No fue posible descargar el firmware (HTTP ${r.status}).`);
+  const data=new Uint8Array(await r.arrayBuffer()); if(data.length<1024) throw new Error("El firmware descargado no parece válido.");
+  log(`Firmware preparado: ${data.length} bytes.`); return data;
+}
+
+function writeU32(view, off, value){ view.setUint32(off, value>>>0, true); }
+function binToUf2(bin, baseAddress, familyId){
+  const blocks=Math.ceil(bin.length/PAYLOAD_SIZE); const out=new Uint8Array(blocks*512);
+  for(let i=0;i<blocks;i++){
+    const bo=i*512; const view=new DataView(out.buffer,bo,512);
+    writeU32(view,0,UF2_MAGIC_START0); writeU32(view,4,UF2_MAGIC_START1); writeU32(view,8,UF2_FLAG_FAMILY_ID);
+    writeU32(view,12,baseAddress+i*PAYLOAD_SIZE); writeU32(view,16,PAYLOAD_SIZE); writeU32(view,20,i); writeU32(view,24,blocks); writeU32(view,28,familyId);
+    const src=bin.subarray(i*PAYLOAD_SIZE,Math.min(bin.length,(i+1)*PAYLOAD_SIZE)); out.set(src,bo+32);
+    writeU32(view,508,UF2_MAGIC_END);
+  }
+  return out;
+}
+
+async function buildUf2(){
+  const fw=currentFirmware(); if(!fw) throw new Error("No hay firmware disponible para esta combinación.");
+  const bin=await getBinary(fw); const base=parseHex(fw.baseAddress,DEFAULT_BASE_ADDRESS); const family=parseHex(fw.familyId,DEFAULT_FAMILY_ID);
+  log(`Generando UF2 para nRF52840…`); return {fw, data:binToUf2(bin,base,family)};
+}
+
+async function selectBootDrive(){
+  if(!window.showDirectoryPicker) throw new Error("Este navegador no permite seleccionar la unidad TECHOBOOT. Usa Chrome o Edge actualizado o descarga el UF2 manualmente.");
+  const handle=await window.showDirectoryPicker({mode:'readwrite'});
+  if(String(handle.name||'').toUpperCase() !== 'TECHOBOOT') throw new Error(`La carpeta seleccionada es “${handle.name||'desconocida'}”. Selecciona la unidad TECHOBOOT del T-Echo.`);
+  const perm=await handle.requestPermission({mode:'readwrite'}); if(perm!=='granted') throw new Error("No se concedió permiso para escribir en TECHOBOOT.");
+  bootHandle=handle; $("driveState").textContent="TECHOBOOT seleccionada"; renderSelection(); setResult("TECHOBOOT seleccionada. Ya puedes instalar el firmware.","ok"); log("Unidad TECHOBOOT seleccionada correctamente.");
+}
+
+async function flashFirmware(){
+  if(!bootHandle) throw new Error("Primero selecciona la unidad TECHOBOOT.");
+  const {fw,data}=await buildUf2(); const filename=`indy-open-${currentKey()}-${fw.version}.uf2`;
+  setProgress(10); setResult("Preparando instalación…");
+  try{
+    const fileHandle=await bootHandle.getFileHandle(filename,{create:true}); const writable=await fileHandle.createWritable();
+    const chunk=64*1024; for(let off=0;off<data.length;off+=chunk){ await writable.write(data.subarray(off,Math.min(data.length,off+chunk))); setProgress(10+Math.min(85,85*(off+chunk)/data.length)); }
+    await writable.close(); setProgress(100); $("driveState").textContent="instalación completada"; setResult(`Instalación completada: ${fw.model} ${fw.frequency} MHz ${fw.version}. Ya puedes desconectar el T-Echo.`,"ok"); log("Instalación completada. El T-Echo puede reiniciarse o desmontar TECHOBOOT automáticamente.");
+  }catch(e){
+    const msg=String(e?.message||e||'');
+    if(/disconnected|not found|gone|device|aborted/i.test(msg)){ setProgress(100); setResult("La copia terminó y TECHOBOOT se desconectó. Si el T-Echo reinició, la instalación probablemente finalizó correctamente.","ok"); log(`TECHOBOOT se desconectó durante el cierre: ${msg}`); return; }
+    throw e;
+  }
+}
+
+async function downloadUf2(){
+  const {fw,data}=await buildUf2(); const name=`indy-open-${currentKey()}-${fw.version}.uf2`;
+  const blob=new Blob([data],{type:'application/octet-stream'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  setResult(`UF2 generado. Copia “${name}” a la unidad TECHOBOOT.`,"ok"); log(`UF2 descargado: ${name}.`);
+}
+
+document.querySelectorAll('input[name="model"]').forEach(x=>x.addEventListener('change',()=>{model=x.value;renderSelection();log(`Modelo seleccionado: ${model}.`);}));
+document.querySelectorAll('input[name="freq"]').forEach(x=>x.addEventListener('change',()=>{freq=x.value;renderSelection();log(`Banda seleccionada: ${freq} MHz.`);}));
+$("selectBootBtn").addEventListener('click',async()=>{try{await selectBootDrive();}catch(e){const m=String(e?.message||e||''); if(e?.name==='AbortError') {setResult("Selección cancelada por el usuario.");log("Selección cancelada por el usuario.");} else {setResult(m,"error");log(`ERROR: ${m}`);}}});
+$("flashBtn").addEventListener('click',async()=>{const fw=currentFirmware(); if(!fw)return; if(!confirm(`Se instalará:\n\n${fw.model}\n${fw.frequency} MHz\n${fw.version}\n\n¿Deseas continuar?`))return; try{$("flashBtn").disabled=true;await flashFirmware();}catch(e){setProgress(0);setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);}finally{renderSelection();}});
+$("downloadBtn").addEventListener('click',async()=>{try{await downloadUf2();}catch(e){setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);}});
+
+if(window.isSecureContext){$("supportStatus").className="status ok";$("supportStatus").innerHTML=window.showDirectoryPicker?"<strong>Navegador compatible.</strong> Puede seleccionar TECHOBOOT y escribir el UF2.":"<strong>Modo compatible parcial.</strong> Puedes generar el UF2; para instalación directa usa Chrome o Edge con acceso al sistema de archivos.";}else{$("supportStatus").className="status error";$("supportStatus").innerHTML="<strong>Contexto no seguro.</strong> Publica la página mediante HTTPS para usar todas las funciones.";}
+loadCatalog().catch(e=>{setResult(e.message||String(e),"error");log(`ERROR: ${e.message||e}`);renderSelection();});
+</script>
+</body>
+</html>
