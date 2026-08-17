@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Indy Open T-Echo - Tracker LoRa APRS basado en LILYGO T-Echo.">
+  <title>Indy Open T-Echo · LoRa APRS Tracker</title>
+
+  <style>
+    :root {
+      --bg: #06101d;
+      --bg2: #0b1b2d;
+      --panel: rgba(12, 31, 52, .92);
+      --panel2: rgba(16, 43, 71, .88);
+      --blue: #1688ff;
+      --blue2: #62b5ff;
+      --text: #eef7ff;
+      --muted: #a9bfd4;
+      --line: rgba(104, 180, 255, .22);
+      --green: #57dc9a;
+      --max: 1160px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% 5%, rgba(30, 136, 255, .20), transparent 26rem),
+        radial-gradient(circle at 10% 25%, rgba(40, 110, 190, .12), transparent 28rem),
+        linear-gradient(180deg, #02070d, var(--bg) 35%, #071523 100%);
+      line-height: 1.65;
+    }
+
+    a {
+      color: var(--blue2);
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .wrap {
+      width: min(calc(100% - 36px), var(--max));
+      margin-inline: auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(2, 8, 14, .84);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    nav {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .brand span {
+      color: var(--blue);
+    }
+
+    .navlinks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      font-size: .9rem;
+    }
+
+    .navlinks a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .navlinks a:hover {
+      color: white;
+    }
+
+    .hero {
+      padding: 68px 0 32px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--blue2);
+      background: rgba(22, 136, 255, .08);
+      font-weight: 700;
+      font-size: .82rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    h1 {
+      margin: 22px 0 10px;
+      font-size: clamp(2.8rem, 8vw, 6.7rem);
+      line-height: .94;
+      text-transform: uppercase;
+      letter-spacing: -.055em;
+    }
+
+    h1 span {
+      display: block;
+      color: var(--blue);
+    }
+
+    .subtitle {
+      margin: 0 auto;
+      max-width: 760px;
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: var(--muted);
+    }
+
+    .flowline {
+      margin-top: 26px;
+      color: var(--blue2);
+      font-weight: 800;
+      letter-spacing: .035em;
+    }
+
+    .flyer {
+      margin: 36px auto 64px;
+      max-width: 1000px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+      background: #fff;
+    }
+
+    section {
+      padding: 64px 0;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.15;
+    }
+
+    h3 {
+      margin-top: 0;
+      color: #fff;
+    }
+
+    .lead {
+      color: var(--muted);
+      max-width: 860px;
+      font-size: 1.08rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      background:
+        linear-gradient(150deg, rgba(21, 64, 105, .30), rgba(7, 22, 37, .60)),
+        var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,.03);
+    }
+
+    .card strong {
+      display: block;
+      color: white;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .icon {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .diagram {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .node {
+      min-height: 128px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      padding: 18px;
+      font-weight: 800;
+    }
+
+    .node small {
+      display: block;
+      color: var(--muted);
+      font-weight: 500;
+      margin-top: 3px;
+    }
+
+    .arrow {
+      color: var(--blue);
+      font-size: 1.7rem;
+      font-weight: 900;
+    }
+
+    .twocol {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .screen {
+      padding: 24px;
+      border-radius: 18px;
+      border: 1px solid #607080;
+      background: #d9dbd3;
+      color: #101418;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      white-space: pre;
+      line-height: 1.45;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--blue2);
+      background: rgba(22,136,255,.08);
+    }
+
+    td {
+      color: var(--muted);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    pre {
+      margin: 0;
+      padding: 22px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #b6ff83;
+      background: #020a11;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .status {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border-radius: 999px;
+      background: rgba(87,220,154,.10);
+      border: 1px solid rgba(87,220,154,.30);
+      color: var(--green);
+      padding: 7px 12px;
+      font-weight: 800;
+    }
+
+    footer {
+      margin-top: 54px;
+      padding: 38px 0;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      text-align: center;
+    }
+
+    .small {
+      font-size: .9rem;
+    }
+
+    @media (max-width: 850px) {
+      .grid,
+      .twocol {
+        grid-template-columns: 1fr;
+      }
+
+      .diagram {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+        text-align: center;
+      }
+
+      .navlinks {
+        display: none;
+      }
+
+      section {
+        padding: 46px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <div class="brand">INDY OPEN <span>T-ECHO</span></div>
+      <div class="navlinks">
+        <a href="#caracteristicas">Características</a>
+        <a href="#funcionamiento">Funcionamiento</a>
+        <a href="#pantalla">Pantalla</a>
+        <a href="#configuracion">Configuración</a>
+        <a href="#estado">Estado</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Indy Open Project · LoRa APRS</div>
+
+      <h1>
+        INDY OPEN
+        <span>T-ECHO</span>
+      </h1>
+
+      <p class="subtitle">
+        Tracker LoRa APRS compacto, autónomo y de bajo consumo basado en LILYGO T-Echo.
+        Obtiene tu posición mediante GNSS y transmite periódicamente una baliza APRS por LoRa.
+      </p>
+
+      <div class="flowline">
+        T-Echo → LoRa APRS → iGate → APRS-IS → mapa APRS
+      </div>
+
+      <div class="flyer">
+        <img src="t-echo.png" alt="Flyer Indy Open T-Echo LoRa APRS Tracker">
+      </div>
+    </div>
+  </section>
+
+  <section id="caracteristicas">
+    <div class="wrap">
+      <h2>Un tracker APRS hecho para transmitir</h2>
+      <p class="lead">
+        La primera versión de Indy Open T-Echo está pensada con un objetivo muy concreto:
+        obtener una posición GNSS válida, construir una baliza APRS y transmitirla utilizando LoRa.
+        Sin convertir el equipo en un mensajero, un iGate o una estación APRS completa.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="icon">📍</div>
+          <strong>Balizas APRS por LoRa</strong>
+          <p>Transmite posición APRS para que un iGate compatible pueda enviarla a APRS-IS.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon">🛰️</div>
+          <strong>GNSS integrado</strong>
+          <p>Posición, altitud, velocidad y rumbo cuando los datos estén disponibles.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon">📡</div>
+          <strong>LoRa SX1262</strong>
+          <p>Comunicación LoRa configurable según el hardware y la región utilizada.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon">🔋</div>
+          <strong>Bajo consumo</strong>
+          <p>Diseñado para trackers portátiles donde autonomía y simplicidad son prioridades.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon">🖥️</div>
+          <strong>Pantalla E-Paper</strong>
+          <p>Información APRS esencial visible con muy bajo consumo de energía.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon">⚙️</div>
+          <strong>Configurable</strong>
+          <p>Indicativo, SSID, símbolo, comentario, intervalo, potencia y más.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="funcionamiento">
+    <div class="wrap">
+      <h2>Así funciona</h2>
+
+      <div class="diagram">
+        <div class="node">
+          T-ECHO
+          <small>GNSS + LoRa</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="node">
+          iGate
+          <small>LoRa APRS</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="node">
+          APRS-IS
+          <small>Internet</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="node">
+          MAPA APRS
+          <small>posición visible</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pantalla">
+    <div class="wrap">
+      <div class="twocol">
+        <div>
+          <h2>Una pantalla pensada para APRS</h2>
+          <p class="lead">
+            En lugar de mostrar información genérica de diagnóstico, la interfaz estará orientada
+            al uso real como tracker: indicativo, estado GNSS, satélites, altitud, movimiento,
+            última transmisión y estado LoRa.
+          </p>
+        </div>
+
+        <div class="screen">XE3JAC-3        12:30
+
+        APRS
+
+GPS     7 SAT
+ALT     2145 m
+SPD     12 km/h
+CRS     090°
+
+TX      00:45
+LoRa    OK</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="configuracion">
+    <div class="wrap">
+      <h2>Configuración prevista</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Parámetro</th>
+            <th>Función</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Callsign</td><td>Indicativo de radioaficionado</td></tr>
+          <tr><td>SSID</td><td>Identificador APRS del tracker</td></tr>
+          <tr><td>Símbolo APRS</td><td>Icono mostrado en los mapas</td></tr>
+          <tr><td>Comentario</td><td>Texto incluido en la baliza</td></tr>
+          <tr><td>Intervalo</td><td>Tiempo entre transmisiones</td></tr>
+          <tr><td>Potencia TX</td><td>Potencia de transmisión LoRa</td></tr>
+          <tr><td>Smart Beaconing</td><td>Ajuste automático según movimiento</td></tr>
+          <tr><td>Frecuencia</td><td>Configuración compatible con hardware y región</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Ejemplo conceptual de baliza</h2>
+
+      <pre>XE3JAC-3&gt;APLPS3:!1903.50N/09812.00W&gt;000/012/A=007041 Indy Open T-Echo</pre>
+
+      <p class="lead">
+        La baliza puede incluir indicativo, posición, altitud, velocidad, rumbo, símbolo APRS
+        y comentario. El formato definitivo podrá cambiar durante el desarrollo.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Smart Beaconing</h2>
+
+      <p class="lead">
+        El firmware contempla adaptar el intervalo de transmisión al movimiento del equipo.
+        Cuando permanece detenido puede espaciar las balizas; al desplazarse puede aumentar
+        la frecuencia de actualización y reaccionar a cambios importantes de rumbo.
+      </p>
+    </div>
+  </section>
+
+  <section id="estado">
+    <div class="wrap">
+      <h2>Estado del proyecto</h2>
+      <div class="status">● EN DESARROLLO</div>
+
+      <p class="lead" style="margin-top:18px;">
+        Indy Open T-Echo se encuentra actualmente en fase de definición e implementación.
+        La interfaz, parámetros y comportamiento final del firmware podrán evolucionar a medida
+        que se realicen pruebas sobre hardware real.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Open Source · Open Radio</h2>
+
+      <p class="lead">
+        Indy Open busca desarrollar herramientas abiertas para radioaficionados utilizando
+        hardware disponible comercialmente y firmware que pueda estudiarse, modificarse,
+        compilarse, mejorarse y compartirse.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <strong>INDY OPEN T-ECHO</strong><br>
+    <span>LoRa APRS Tracker · Indy Open Project</span><br><br>
+    <span class="small">73 · Open Source · Open Radio · Experimentación</span>
+  </div>
+</footer>
+
+</body>
+</html>
